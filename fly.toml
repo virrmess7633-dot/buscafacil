@@ -1,0 +1,51 @@
+# Configuração de deploy no Fly.io.
+# Troque "app" pelo nome único que você escolher (o Fly reserva o nome
+# globalmente). Rode `fly launch` uma vez para gerar/confirmar isso, ou
+# ajuste manualmente e rode `fly deploy` direto.
+
+app = "buscafacil"          # <- troque por um nome único seu
+primary_region = "gru"            # São Paulo — ajuste se preferir outra região
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  DATA_DIR = "/data"
+
+# Dois processos a partir da MESMA imagem: a API web e o worker de
+# scraping/Telegram. Isso corresponde exatamente à arquitetura de
+# "server.js" + "worker.js" separados descrita no README.
+[processes]
+  app    = "node backend/src/server.js"
+  worker = "node backend/src/worker.js"
+
+# Volume persistente montado em /data — sem isso, o histórico de imóveis
+# já vistos (data/*.json) some a cada deploy e o bot pode renotificar tudo.
+# Criar o volume antes do primeiro deploy:
+#   fly volumes create olx_data --region gru --size 1
+[[mounts]]
+  source      = "olx_data"
+  destination = "/data"
+
+# Só o processo "app" expõe HTTP (o worker não precisa de porta pública).
+[[services]]
+  processes     = ["app"]
+  internal_port = 3000
+  protocol      = "tcp"
+  auto_stop_machines  = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    path     = "/api/health"
+    interval = "30s"
+    timeout  = "5s"

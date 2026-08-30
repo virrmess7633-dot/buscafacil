@@ -1,0 +1,62 @@
+name: Deploy no Fly.io
+
+# Roda automaticamente a cada push na branch "main".
+# Também pode ser disparado manualmente pela aba "Actions" do GitHub.
+#
+# Este workflow NÃO exige nada instalado na sua máquina além do git para
+# empurrar o código: todo o resto (npm install, criação do app no Fly,
+# criação do volume, segredos e deploy) roda aqui, nos runners do GitHub.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency: deploy-group # evita dois deploys simultâneos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ler nome do app definido em fly.toml
+        id: app
+        run: echo "name=$(grep '^app = ' fly.toml | cut -d '"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Criar o app no Fly (só na primeira vez; ignora se já existir)
+        run: flyctl apps create ${{ steps.app.outputs.name }} || echo "App já existe, seguindo."
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Criar volume de dados (só na primeira vez; ignora se já existir)
+        run: |
+          if ! flyctl volumes list --app ${{ steps.app.outputs.name }} | grep -q olx_data; then
+            flyctl volumes create olx_data --region gru --size 1 --app ${{ steps.app.outputs.name }} --yes
+          else
+            echo "Volume já existe, seguindo."
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Configurar segredos (Telegram, etc.)
+        # Lê dos "repository secrets" do GitHub — configure-os em:
+        # Settings > Secrets and variables > Actions. Se você ainda não
+        # tem o token do bot, pode deixar TELEGRAM_BOT_TOKEN vazio por
+        # enquanto; o worker simplesmente roda com o bot desativado.
+        run: |
+          flyctl secrets set \
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            TELEGRAM_ADMIN_CHAT_IDS="${{ secrets.TELEGRAM_ADMIN_CHAT_IDS }}" \
+            --app ${{ steps.app.outputs.name }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy
+        run: flyctl deploy --remote-only --app ${{ steps.app.outputs.name }}
+        env:
+          # Configure este segredo em: GitHub > Settings > Secrets and
+          # variables > Actions > New repository secret.
+          # Gere o valor em https://fly.io/user/personal_access_tokens
+          # (pelo navegador, sem precisar instalar o flyctl).
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -1,0 +1,422 @@
+/*
+  Direção visual: "dossiê de vistoria imobiliária" — cada imóvel avaliado
+  é tratado como um item de um ledger/relatório de campo, com uma nota
+  aplicada como carimbo. Paleta de papel de campo (não o cream+terracota
+  padrão), tipografia de máquina de escrever para números e carimbos.
+*/
+
+:root {
+  --paper: #EDEEE4;
+  --paper-card: #FBFAF4;
+  --ink: #23301F;
+  --ink-soft: #5B6B57;
+  --line: #C7CBB8;
+  --line-strong: #9AA28C;
+  --signal-good: #2F6F4F;
+  --signal-mid: #A6771F;
+  --signal-low: #B5482F;
+  --whatsapp: #1E9E56;
+
+  --font-display: 'Special Elite', 'Courier New', monospace;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% 32px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+.folder {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+/* --- Header --- */
+.folder__header {
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.folder__tab {
+  position: absolute;
+  top: -14px;
+  right: 0;
+  background: var(--ink);
+  color: var(--paper-card);
+  padding: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  display: flex;
+  gap: 8px;
+  transform: rotate(1.5deg);
+}
+
+.folder__title {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  margin: 0 0 4px;
+  letter-spacing: 0.01em;
+}
+
+.folder__subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+}
+
+/* --- Layout --- */
+.workspace {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: 1fr; }
+}
+
+/* --- Ledger (sidebar) --- */
+.ledger {
+  background: var(--paper-card);
+  border: 1px solid var(--line-strong);
+  padding: 18px;
+  align-self: start;
+}
+
+.ledger__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ledger h2 {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+}
+
+.ledger__divider {
+  border-top: 1px dashed var(--line-strong);
+  margin: 16px 0;
+}
+
+.ledger__list, .ledger__logs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ledger__empty {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.perfil-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.perfil-item:hover { border-color: var(--line-strong); }
+
+.perfil-item.ativo-selecionado {
+  border-color: var(--ink);
+  background: var(--paper-card);
+  box-shadow: 2px 2px 0 var(--line-strong);
+}
+
+.perfil-item__nome { font-weight: 600; }
+.perfil-item__meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.perfil-item__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line-strong);
+  flex-shrink: 0;
+}
+.perfil-item__dot.ativo { background: var(--signal-good); }
+
+.log-item {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--line);
+  color: var(--ink-soft);
+}
+.log-item strong { color: var(--ink); }
+.log-item.erro { color: var(--signal-low); }
+
+/* --- Buttons --- */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 9px 14px;
+  border: 1px solid var(--ink);
+  background: var(--paper-card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--ink); }
+.btn:active { transform: translate(0,0); box-shadow: none; }
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.btn--stamp-action {
+  width: 100%;
+  background: var(--ink);
+  color: var(--paper-card);
+  border-color: var(--ink);
+}
+
+.ledger__status {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  min-height: 16px;
+  margin: 8px 0 0;
+}
+
+/* --- Results toolbar --- */
+.results__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.results__toolbar label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.results__toolbar input {
+  width: 60px;
+  font-family: var(--font-mono);
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-card);
+}
+
+.results__count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- Grid of listing cards --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.grid__empty {
+  grid-column: 1 / -1;
+  color: var(--ink-soft);
+  font-style: italic;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.card {
+  background: var(--paper-card);
+  border: 1px solid var(--line-strong);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card__photo {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line-strong);
+  filter: sepia(8%) contrast(1.02);
+}
+
+.card__body { padding: 14px 14px 16px; position: relative; }
+
+.card__title {
+  font-weight: 700;
+  font-size: 15px;
+  margin: 0 0 6px;
+  line-height: 1.3;
+  padding-right: 64px; /* espaço para o carimbo */
+}
+
+.card__price {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.card__address {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+}
+
+.card__stats {
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--line);
+  padding: 8px 0;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.card__resumo {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.card__actions a {
+  flex: 1;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.card__actions a.whatsapp {
+  background: var(--whatsapp);
+  border-color: var(--whatsapp);
+  color: #fff;
+}
+
+/* --- Stamp (signature element) --- */
+.stamp {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  transform: rotate(-9deg);
+  opacity: 0.92;
+}
+
+.stamp__score { font-size: 17px; line-height: 1; }
+.stamp__label { font-size: 7px; letter-spacing: 0.05em; margin-top: 2px; }
+
+.stamp--good { color: var(--signal-good); }
+.stamp--mid { color: var(--signal-mid); }
+.stamp--low { color: var(--signal-low); }
+
+/* --- Modal --- */
+dialog {
+  border: 1px solid var(--ink);
+  padding: 0;
+  max-width: 560px;
+  width: 92vw;
+  background: var(--paper-card);
+}
+dialog::backdrop { background: rgba(35, 48, 31, 0.35); }
+
+#form-perfil {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#form-perfil h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  margin: 0 0 6px;
+}
+
+#form-perfil label {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#form-perfil input, #form-perfil select {
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}

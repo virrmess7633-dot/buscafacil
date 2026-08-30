@@ -1,0 +1,48 @@
+/**
+ * env.js
+ * Carrega variáveis de ambiente e expõe defaults centralizados.
+ * Nunca commitar um .env real — use .env.example como referência.
+ */
+
+require('dotenv').config();
+const path = require('path');
+
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', '..', 'data');
+
+module.exports = {
+  PORT: parseInt(process.env.PORT || '3000', 10),
+
+  DATA_DIR,
+  PROFILES_FILE: path.join(DATA_DIR, 'profiles.json'),
+  LISTINGS_FILE: path.join(DATA_DIR, 'listings.json'),
+  LOGS_FILE: path.join(DATA_DIR, 'scan-logs.json'),
+
+  // --- Scraper ---
+  OLX_BASE_URL: process.env.OLX_BASE_URL || 'https://www.olx.com.br',
+  SCRAPER_USER_AGENT:
+    process.env.SCRAPER_USER_AGENT ||
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+  SCRAPER_REQUEST_DELAY_MS: parseInt(process.env.SCRAPER_REQUEST_DELAY_MS || '2500', 10),
+  SCRAPER_MAX_PAGES_PER_RUN: parseInt(process.env.SCRAPER_MAX_PAGES_PER_RUN || '3', 10),
+  SCRAPER_TIMEOUT_MS: parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10),
+
+  // --- Worker / agendamento ---
+  SCAN_CRON: process.env.SCAN_CRON || '*/10 * * * *', // a cada 10 min
+  NOTIFY_MIN_SCORE: parseFloat(process.env.NOTIFY_MIN_SCORE || '70'),
+
+  // --- Telegram ---
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+  TELEGRAM_ADMIN_CHAT_IDS: (process.env.TELEGRAM_ADMIN_CHAT_IDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+
+  // --- Scoring: pesos padrão (podem ser sobrescritos por perfil) ---
+  DEFAULT_WEIGHTS: {
+    preco: 0.30,
+    localizacao: 0.25,
+    quartos: 0.15,
+    area: 0.15,
+    extras: 0.15, // mobiliado, pet, condomínio, palavras-chave, andar/elevador
+  },
+};

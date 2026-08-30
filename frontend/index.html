@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Radar de Imóveis — Painel de Varredura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="folder">
+
+  <header class="folder__header">
+    <div class="folder__tab">
+      <span class="folder__tab-label">DOSSIÊ Nº</span>
+      <span class="folder__tab-number" id="scan-count">000</span>
+    </div>
+    <h1 class="folder__title">Radar de Imóveis</h1>
+    <p class="folder__subtitle">Varredura, avaliação e despacho de oportunidades de aluguel</p>
+  </header>
+
+  <div class="workspace">
+
+    <aside class="ledger">
+      <div class="ledger__head">
+        <h2>Perfis de busca</h2>
+        <button id="btn-novo-perfil" class="btn btn--ghost" title="Criar novo perfil">+ novo</button>
+      </div>
+      <ul id="lista-perfis" class="ledger__list">
+        <li class="ledger__empty">Carregando perfis…</li>
+      </ul>
+
+      <div class="ledger__divider"></div>
+
+      <button id="btn-varrer" class="btn btn--stamp-action">
+        ▶ Rodar varredura agora
+      </button>
+      <p id="scan-status" class="ledger__status"></p>
+
+      <div class="ledger__divider"></div>
+
+      <h2>Registro de varreduras</h2>
+      <ul id="lista-logs" class="ledger__logs">
+        <li class="ledger__empty">Sem execuções ainda.</li>
+      </ul>
+    </aside>
+
+    <main class="results">
+      <div class="results__toolbar">
+        <label>
+          Nota mínima
+          <input type="number" id="filtro-score" min="0" max="100" value="0" />
+        </label>
+        <span id="results-count" class="results__count">0 imóveis</span>
+      </div>
+
+      <div id="grid-imoveis" class="grid">
+        <p class="grid__empty">Nenhum imóvel avaliado ainda. Crie um perfil de busca e rode uma varredura.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal de criação/edição de perfil -->
+<dialog id="modal-perfil">
+  <form id="form-perfil" method="dialog">
+    <h2 id="modal-titulo">Novo perfil de busca</h2>
+
+    <label>Nome do perfil
+      <input name="nome" required placeholder="Ex.: Apê até R$1.500 — Manaíra" />
+    </label>
+
+    <div class="grid-2">
+      <label>Cidade
+        <input name="cidade" placeholder="João Pessoa" />
+      </label>
+      <label>Bairros (separados por vírgula)
+        <input name="bairros" placeholder="Manaíra, Tambaú" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label>Preço mínimo (R$)
+        <input name="precoMin" type="number" min="0" />
+      </label>
+      <label>Preço máximo (R$)
+        <input name="precoMax" type="number" min="0" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label>Quartos (mín.)
+        <input name="quartosMin" type="number" min="0" />
+      </label>
+      <label>Vagas (mín.)
+        <input name="vagasMin" type="number" min="0" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label>Área mínima (m²)
+        <input name="areaMin" type="number" min="0" />
+      </label>
+      <label>Condomínio máx. (R$)
+        <input name="condominioMax" type="number" min="0" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label>Mobiliado
+        <select name="mobiliado">
+          <option value="indiferente">Indiferente</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </label>
+      <label>Aceita pets
+        <select name="aceitaPets">
+          <option value="indiferente">Indiferente</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </label>
+    </div>
+
+    <label>Tipo de imóvel (separados por vírgula: apartamento, casa, kitnet)
+      <input name="tipoImovel" placeholder="apartamento" />
+    </label>
+
+    <div class="grid-2">
+      <label>Nota mínima p/ notificar no Telegram
+        <input name="scoreMinimo" type="number" min="0" max="100" value="70" />
+      </label>
+      <label>Chat IDs do Telegram (separados por vírgula)
+        <input name="telegramChatIds" placeholder="-100123456789" />
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" id="btn-cancelar-perfil" class="btn btn--ghost">Cancelar</button>
+      <button type="submit" class="btn btn--stamp-action">Salvar perfil</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
