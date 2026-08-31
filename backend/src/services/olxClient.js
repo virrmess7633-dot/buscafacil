@@ -21,7 +21,73 @@
 
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { OLX_BASE_URL, SCRAPER_USER_AGENT, SCRAPER_TIMEOUT_MS } = require('../config/env');
+const { CookieJar } = require('tough-cookie');
+const { wrapper } = require('axios-cookiejar-support');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const {
+  OLX_BASE_URL,
+  SCRAPER_USER_AGENT,
+  SCRAPER_TIMEOUT_MS,
+  SCRAPER_PROXY_URL,
+} = require('../config/env');
+
+/**
+ * Sessão HTTP com jar de cookies (compartilhado entre as chamadas) e um
+ * conjunto de headers que imita um navegador real. A OLX (como muitos
+ * sites com proteção anti-scraping tipo Cloudflare) costuma bloquear com
+ * 403 requisições "cruas" sem cookies de sessão prévios e sem os headers
+ * que um navegador de verdade sempre envia.
+ *
+ * IMPORTANTE: isso reduz a chance de bloqueio, mas não elimina — se a
+ * proteção da OLX for baseada em reputação de IP (bloquear faixas de
+ * datacenter/cloud, como as do Fly.io), nenhum ajuste de headers resolve
+ * sozinho. Ver nota no final deste arquivo sobre o plano B (navegador
+ * headless) caso o 403 persista mesmo com esta mudança.
+ */
+const jar = new CookieJar();
+const httpClient = wrapper(
+  axios.create({
+    jar,
+    withCredentials: true,
+    timeout: SCRAPER_TIMEOUT_MS,
+    // Se SCRAPER_PROXY_URL estiver configurado (formato
+    // http://usuario:senha@host:porta), roteia as requisições por ele —
+    // útil quando o bloqueio da OLX é por reputação do IP do servidor,
+    // não pelos headers da requisição. Ver env.js e README.md.
+    ...(SCRAPER_PROXY_URL ? { httpsAgent: new HttpsProxyAgent(SCRAPER_PROXY_URL) } : {}),
+    headers: {
+      'User-Agent': SCRAPER_USER_AGENT,
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
+  })
+);
+
+let sessaoAquecida = false;
+
+/**
+ * Visita a home da OLX uma vez por processo para receber os cookies de
+ * sessão (ex.: identificadores anti-bot) antes de bater direto na página
+ * de busca — imitando o comportamento de um usuário real navegando.
+ */
+async function aquecerSessao() {
+  if (sessaoAquecida) return;
+  try {
+    await httpClient.get(OLX_BASE_URL);
+    sessaoAquecida = true;
+  } catch (err) {
+    // Se nem a home responde, deixamos a tentativa seguinte revelar o erro real.
+  }
+}
 
 const TIPO_IMOVEL_SLUG = {
   apartamento: 'apartamentos',
@@ -73,12 +139,9 @@ function slugify(str) {
 }
 
 async function fetchSearchPageHtml(url) {
-  const { data } = await axios.get(url, {
-    headers: {
-      'User-Agent': SCRAPER_USER_AGENT,
-      'Accept-Language': 'pt-BR,pt;q=0.9',
-    },
-    timeout: SCRAPER_TIMEOUT_MS,
+  await aquecerSessao();
+  const { data } = await httpClient.get(url, {
+    headers: { Referer: OLX_BASE_URL },
   });
   return data;
 }
@@ -278,3 +341,30 @@ module.exports = {
   slugify,
   parsePreco,
 };
+
+/**
+ * PLANO B — se o 403 persistir mesmo com cookies de sessão e headers de
+ * navegador (ver comentário no topo do arquivo):
+ *
+ * Isso indica que o bloqueio é por REPUTAÇÃO DE IP, não por "parecer bot"
+ * na requisição — comum em provedores de nuvem (Fly.io, AWS, etc.), já
+ * que sites com proteção anti-scraping costumam listar faixas de IP de
+ * datacenter como suspeitas por padrão, independente dos headers enviados.
+ *
+ * Duas saídas possíveis, em ordem de esforço:
+ *
+ * 1. Rodar o worker (scraperService/worker.js) a partir de uma máquina
+ *    com IP residencial/doméstico em vez do Fly.io — por exemplo, seu
+ *    próprio computador ou um mini-servidor em casa, deixando só a API
+ *    web (server.js) no Fly. É a mudança mais simples, mas exige deixar
+ *    uma máquina sua ligada continuamente.
+ *
+ * 2. Rotear as requisições de scraping por um serviço de proxy
+ *    residencial (pago) — mantém tudo no Fly, mas adiciona custo e mais
+ *    uma peça de infraestrutura para gerenciar.
+ *
+ * Trocar para um navegador headless (Puppeteer/Playwright) SOZINHO não
+ * resolve bloqueio por IP — ele ajuda quando o obstáculo é um desafio
+ * JavaScript (tipo "verificando seu navegador..."), não quando é a faixa
+ * de IP em si que está na lista de bloqueio.
+ */

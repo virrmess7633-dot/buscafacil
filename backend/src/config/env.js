@@ -25,6 +25,11 @@ module.exports = {
   SCRAPER_REQUEST_DELAY_MS: parseInt(process.env.SCRAPER_REQUEST_DELAY_MS || '2500', 10),
   SCRAPER_MAX_PAGES_PER_RUN: parseInt(process.env.SCRAPER_MAX_PAGES_PER_RUN || '3', 10),
   SCRAPER_TIMEOUT_MS: parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10),
+  // URL de um proxy residencial/móvel, no formato:
+  //   http://usuario:senha@host:porta
+  // Deixe vazio para não usar proxy (requisição direta do IP do servidor).
+  // Ver README.md > "Se a OLX continuar bloqueando (403)" para contexto.
+  SCRAPER_PROXY_URL: process.env.SCRAPER_PROXY_URL || '',
 
   // --- Worker / agendamento ---
   SCAN_CRON: process.env.SCAN_CRON || '*/10 * * * *', // a cada 10 min
