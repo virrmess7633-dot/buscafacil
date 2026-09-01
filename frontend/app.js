@@ -106,6 +106,7 @@ function classeStamp(score) {
 function renderCard(l) {
   const { classe, label } = classeStamp(l.score);
   const foto = l.fotos && l.fotos[0];
+  const nomePlataforma = { olx: 'OLX', zap: 'ZAP Imóveis' }[l.plataforma] || l.plataforma;
   const stats = [
     l.quartos ? `${l.quartos} qtos` : null,
     l.banheiros ? `${l.banheiros} banh.` : null,
@@ -114,7 +115,7 @@ function renderCard(l) {
   ].filter(Boolean).join(' · ');
 
   const whatsappHref = l.whatsapp
-    ? `https://wa.me/${l.whatsapp}?text=${encodeURIComponent('Olá! Vi seu anúncio "' + l.titulo + '" na OLX e tenho interesse.')}`
+    ? `https://wa.me/${l.whatsapp}?text=${encodeURIComponent('Olá! Vi seu anúncio "' + l.titulo + '" na ' + nomePlataforma + ' e tenho interesse.')}`
     : null;
 
   return `
@@ -125,13 +126,14 @@ function renderCard(l) {
         <span class="stamp__score">${Math.round(l.score)}</span>
         <span class="stamp__label">${label}</span>
       </div>
+      <span class="card__platform">${nomePlataforma}</span>
       <h3 class="card__title">${escapeHtml(l.titulo)}</h3>
       <p class="card__price">R$ ${l.preco ?? '?'}${l.condominio ? ` + R$${l.condominio} cond.` : ''}</p>
       <p class="card__address">${escapeHtml(l.endereco || 'Localização não informada')}</p>
       ${stats ? `<div class="card__stats">${stats}</div>` : ''}
       <p class="card__resumo">${escapeHtml(l.scoreResumo || '')}</p>
       <div class="card__actions">
-        <a href="${l.linkOlx}" target="_blank" rel="noopener">Ver na OLX</a>
+        <a href="${l.linkAnuncio}" target="_blank" rel="noopener">Ver na ${nomePlataforma}</a>
         ${whatsappHref ? `<a href="${whatsappHref}" target="_blank" rel="noopener" class="whatsapp">Chamar no WhatsApp</a>` : ''}
       </div>
     </div>
@@ -193,6 +195,7 @@ el.formPerfil.addEventListener('submit', async (e) => {
     nome: fd.get('nome'),
     localizacao: {
       cidade: fd.get('cidade') || '',
+      uf: fd.get('uf') || null,
       bairros: splitCsv(fd.get('bairros')),
     },
     precoMin: numOrNull(fd.get('precoMin')),
@@ -204,6 +207,7 @@ el.formPerfil.addEventListener('submit', async (e) => {
     mobiliado: fd.get('mobiliado'),
     aceitaPets: fd.get('aceitaPets'),
     tipoImovel: splitCsv(fd.get('tipoImovel')),
+    plataformas: fd.getAll('plataformas'),
     notificacao: {
       scoreMinimo: numOrNull(fd.get('scoreMinimo')) ?? 70,
       telegramChatIds: splitCsv(fd.get('telegramChatIds')),

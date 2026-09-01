@@ -76,10 +76,24 @@
       <label>Cidade
         <input name="cidade" placeholder="João Pessoa" />
       </label>
-      <label>Bairros (separados por vírgula)
-        <input name="bairros" placeholder="Manaíra, Tambaú" />
+      <label>UF
+        <input name="uf" placeholder="PB" maxlength="2" style="text-transform:uppercase" />
       </label>
     </div>
+
+    <label>Bairros (separados por vírgula)
+      <input name="bairros" placeholder="Manaíra, Tambaú" />
+    </label>
+
+    <fieldset style="border:1px solid var(--line-strong); padding:10px; margin:0;">
+      <legend style="font-size:12px; color:var(--ink-soft); font-family:var(--font-mono); text-transform:uppercase;">Plataformas a buscar</legend>
+      <label style="flex-direction:row; align-items:center; gap:6px; display:inline-flex; margin-right:16px;">
+        <input type="checkbox" name="plataformas" value="olx" checked style="width:auto;" /> OLX
+      </label>
+      <label style="flex-direction:row; align-items:center; gap:6px; display:inline-flex;">
+        <input type="checkbox" name="plataformas" value="zap" checked style="width:auto;" /> ZAP Imóveis
+      </label>
+    </fieldset>
 
     <div class="grid-2">
       <label>Preço mínimo (R$)

@@ -1,7 +1,7 @@
 {
   "name": "olx-imoveis-backend",
   "version": "1.0.0",
-  "description": "Backend (API + scraper + worker + bot Telegram) para busca e avaliação de imóveis na OLX",
+  "description": "Backend (API + scraper multi-plataforma + worker + bot Telegram) para busca e avaliação de imóveis (OLX, ZAP Imóveis)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

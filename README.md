@@ -94,7 +94,7 @@ curl -X POST http://localhost:3000/api/profiles \
   -H "Content-Type: application/json" \
   -d '{
     "nome": "Apê até R$1.500 — Manaíra",
-    "localizacao": { "cidade": "João Pessoa", "bairros": ["Manaíra", "Tambaú"] },
+    "localizacao": { "cidade": "João Pessoa", "uf": "PB", "bairros": ["Manaíra", "Tambaú"] },
     "precoMin": 800,
     "precoMax": 1500,
     "tipoImovel": ["apartamento"],
@@ -105,12 +105,19 @@ curl -X POST http://localhost:3000/api/profiles \
     "mobiliado": "nao",
     "aceitaPets": "sim",
     "palavrasExcluir": ["reformar", "sem laje"],
+    "plataformas": ["olx", "zap"],
     "notificacao": {
       "scoreMinimo": 70,
       "telegramChatIds": ["-1001234567890"]
     }
   }'
 ```
+
+O campo `"uf"` (sigla do estado) é opcional para a OLX, mas necessário
+para o adaptador do ZAP Imóveis funcionar corretamente — sem ele, essa
+plataforma pode não retornar resultados. O campo `"plataformas"` controla
+quais fontes esse perfil consulta; omitir o campo busca em todas
+(atualmente `["olx", "zap"]`).
 
 Campos aceitos e seus significados estão documentados como comentário no
 topo de `backend/src/models/profileModel.js`.
@@ -155,21 +162,86 @@ Vários grupos podem ser associados a um mesmo perfil (array
 grupos e seu próprio `scoreMinimo` — por exemplo, um grupo só para imóveis
 até R$1.500 e outro para até R$3.000, como sugerido no prompt original.
 
-## 6. Deploy sem instalar nada além do git
+## 6. Buscando via Apify (recomendado — resolve bloqueio da OLX, e é obrigatório para ZAP Imóveis)
+
+O sistema busca em duas plataformas: **OLX** e **ZAP Imóveis**. Cada perfil
+de busca escolhe quais delas consultar (campo `plataformas`, padrão:
+ambas).
+
+### Por que Apify em vez de scraping direto?
+
+Ao rodar o scraper direto da OLX a partir de um servidor de nuvem (Fly.io,
+AWS, etc.), é comum receber **HTTP 403** — a OLX usa proteção Cloudflare
+que bloqueia por reputação de IP de datacenter, independente de quão
+"parecida com navegador" a requisição seja. Serviços de scraping como a
+[Apify](https://apify.com) rodam por trás de **proxies residenciais
+brasileiros**, contornando esse bloqueio sem que você precise manter sua
+própria infraestrutura de proxy.
+
+Para o **ZAP Imóveis**, esta versão do projeto só busca via Apify — não
+existe um scraper direto próprio para essa plataforma.
+
+### Como configurar
+
+1. Crie uma conta gratuita em [apify.com](https://apify.com) (tem cota
+   gratuita mensal, suficiente para uso pessoal com poucas buscas).
+2. Pegue seu token de API em **Settings → Integrations** no Console da
+   Apify.
+3. Escolha um "ator" (scraper pronto) para cada plataforma no [Apify
+   Store](https://apify.com/store). Alguns que encontrei funcionando ao
+   escrever este documento (setembro/2026) — **confirme preço e
+   disponibilidade atuais antes de usar, são mantidos por terceiros e
+   podem mudar**:
+
+   | Plataforma | Ator sugerido | Observação |
+   |---|---|---|
+   | OLX | `scrapers_lat/olx-scraper` | Aceita a URL de busca da OLX pronta (`startUrl`) — o projeto já monta essa URL automaticamente |
+   | OLX (alternativa) | `autoscraping/olxbrazil-collect-by-url` | Cobra por URL de anúncio individual, útil para enriquecer detalhes |
+   | ZAP Imóveis | `haketa/zapimoveis-scraper` | Aceita filtros ricos (cidade, bairro, preço, quartos) próximos aos do perfil de busca |
+
+4. **Antes de configurar no projeto**, teste o ator escolhido direto no
+   Apify Console: rode manualmente, confira o formato real da resposta.
+   Scrapers de terceiros mudam nomes de campo sem aviso — se os resultados
+   vierem vazios ou com dados faltando, o primeiro lugar a ajustar é a
+   função `normalizarItemApify()` em `backend/src/services/platforms/olxPlatform.js`
+   ou `zapPlatform.js`, comparando com o que o ator realmente devolveu.
+5. Configure as variáveis (local: `.env`; produção: segredos do GitHub —
+   ver seção 7.4):
+   ```
+   APIFY_API_TOKEN=seu_token_aqui
+   APIFY_OLX_ACTOR_ID=scrapers_lat/olx-scraper
+   APIFY_ZAP_ACTOR_ID=haketa/zapimoveis-scraper
+   ```
+
+Se `APIFY_API_TOKEN` ou `APIFY_OLX_ACTOR_ID` não estiverem configurados, a
+OLX cai automaticamente para o scraper direto gratuito (sujeito ao bloqueio
+403 descrito acima). Se `APIFY_ZAP_ACTOR_ID` não estiver configurado, a
+plataforma ZAP Imóveis simplesmente não retorna resultados — não derruba a
+varredura das outras plataformas/perfis.
+
+### Custo aproximado
+
+Os atores encontrados cobram na faixa de US$1–4 por 1.000 resultados, ou
+uma assinatura mensal pequena (~US$10) mais uso. Para um uso pessoal
+(algumas varreduras por dia, dezenas de resultados cada), o custo tende a
+ficar em poucos dólares por mês ou menos — mas confirme o preço atual do
+ator escolhido antes de deixar o worker rodando continuamente.
+
+## 7. Deploy sem instalar nada além do git
 
 Todo o trabalho pesado (`npm install`, criar o app no Fly, criar o volume,
 configurar segredos e fazer o deploy) roda dentro do **GitHub Actions** —
 não na sua máquina. Você só precisa de um navegador e do `git`, que você
 já tem.
 
-### 6.1 Criar o repositório no GitHub
+### 7.1 Criar o repositório no GitHub
 
 1. No navegador, acesse **github.com/new** e crie um repositório vazio
    (sem README, sem .gitignore — o projeto já tem os seus).
 2. Copie a URL do repositório (algo como
    `https://github.com/SEU-USUARIO/olx-imoveis-bot.git`).
 
-### 6.2 Subir o código via PowerShell
+### 7.2 Subir o código via PowerShell
 
 Extraia o `.zip` que te enviei em uma pasta qualquer e, no PowerShell,
 dentro dessa pasta:
@@ -187,24 +259,27 @@ git push -u origin main
 Na primeira vez, o Windows deve abrir uma janela do navegador pedindo para
 você autorizar o git a acessar sua conta do GitHub — só confirmar.
 
-### 6.3 Criar conta no Fly.io e gerar um token (só no navegador)
+### 7.3 Criar conta no Fly.io e gerar um token (só no navegador)
 
 1. Crie uma conta gratuita em **fly.io** (não precisa instalar nada).
 2. Gere um token de acesso em
    **fly.io/user/personal_access_tokens** → "Create token". Copie o valor.
 
-### 6.4 Configurar os segredos no GitHub
+### 7.4 Configurar os segredos no GitHub
 
 No repositório: **Settings → Secrets and variables → Actions → New
 repository secret**. Crie:
 
 | Nome do segredo | Valor |
 |---|---|
-| `FLY_API_TOKEN` | o token gerado no passo 6.3 (obrigatório) |
+| `FLY_API_TOKEN` | o token gerado no passo 7.3 (obrigatório) |
 | `TELEGRAM_BOT_TOKEN` | token do bot, se já tiver (opcional — pode configurar depois) |
 | `TELEGRAM_ADMIN_CHAT_IDS` | chat IDs com permissão de admin (opcional) |
+| `APIFY_API_TOKEN` | token da Apify (opcional — sem ele, cai no scraper direto da OLX; ZAP fica desativado) |
+| `APIFY_OLX_ACTOR_ID` | ID do ator escolhido para OLX, ex. `scrapers_lat/olx-scraper` (opcional) |
+| `APIFY_ZAP_ACTOR_ID` | ID do ator escolhido para ZAP, ex. `haketa/zapimoveis-scraper` (opcional) |
 
-### 6.5 Escolher um nome único para o app
+### 7.5 Escolher um nome único para o app
 
 Nomes de app no Fly são globais. Abra o arquivo `fly.toml` **direto pela
 interface web do GitHub** (ícone de lápis, sem precisar baixar nada),
@@ -212,7 +287,7 @@ troque a linha `app = "olx-imoveis-bot"` por um nome único seu (ex.:
 `app = "olx-imoveis-seunome"`), e clique em "Commit changes" direto na
 branch `main`.
 
-### 6.6 Deploy automático
+### 7.6 Deploy automático
 
 Esse commit no passo anterior já dispara o workflow. Acompanhe em
 **Actions**, na aba do repositório — ele vai: instalar as dependências,
@@ -226,14 +301,14 @@ A partir daí, qualquer novo `git push` na `main` (inclusive editando
 arquivos direto pela interface web do GitHub, sem PowerShell) já reaplica
 o deploy automaticamente.
 
-### 6.7 Configurar o Telegram depois (opcional, a qualquer momento)
+### 7.7 Configurar o Telegram depois (opcional, a qualquer momento)
 
 Quando tiver o token do bot (veja seção 5), volte em **Settings → Secrets
 and variables → Actions**, adicione/edite `TELEGRAM_BOT_TOKEN`, e dispare
 o workflow de novo em **Actions → Deploy no Fly.io → Run workflow** (não
 precisa esperar um push novo).
 
-### 6.8 Outros hosts (alternativa ao Fly.io)
+### 7.8 Outros hosts (alternativa ao Fly.io)
 
 Qualquer host com Node.js 18+ ou suporte a Docker funciona (Railway,
 Render, um VPS, etc.), mas nesses casos normalmente é necessário instalar
@@ -241,7 +316,7 @@ alguma CLI localmente ou configurar o deploy pela interface do próprio
 provedor — o fluxo 100%-sem-instalar-nada descrito acima é específico da
 combinação GitHub Actions + Fly.io.
 
-## 7. Manutenção do scraper (leia antes de rodar em produção)
+## 8. Manutenção do scraper (leia antes de rodar em produção)
 
 O módulo `backend/src/services/olxClient.js` depende da estrutura de
 página da OLX, que pode mudar sem aviso. Ele tenta primeiro extrair os
@@ -258,7 +333,7 @@ o `robots.txt` da OLX (`https://www.olx.com.br/robots.txt`) para garantir
 que a frequência e o escopo da coleta estão de acordo com as regras da
 plataforma no momento do deploy.
 
-## 8. API REST (resumo)
+## 9. API REST (resumo)
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -268,11 +343,11 @@ plataforma no momento do deploy.
 | PATCH | `/api/profiles/:id/ativo` | Ativa/desativa um perfil |
 | DELETE | `/api/profiles/:id` | Remove um perfil |
 | GET | `/api/listings?profileId=&minScore=` | Lista imóveis avaliados |
-| PATCH | `/api/listings/:olxId/status` | Marca como favorito/descartado/visto |
+| PATCH | `/api/listings/:plataforma/:anuncioId/status` | Marca como favorito/descartado/visto |
 | POST | `/api/listings/scan` | Dispara varredura manual (`{ profileId? }`) |
 | GET | `/api/logs?limit=` | Histórico de varreduras |
 
-## 9. Comandos do bot Telegram
+## 10. Comandos do bot Telegram
 
 | Comando | Descrição |
 |---|---|

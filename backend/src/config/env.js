@@ -17,7 +17,17 @@ module.exports = {
   LISTINGS_FILE: path.join(DATA_DIR, 'listings.json'),
   LOGS_FILE: path.join(DATA_DIR, 'scan-logs.json'),
 
-  // --- Scraper ---
+  // --- Apify (serviço de scraping de terceiros — método recomendado para
+  // OLX e ZAP Imóveis, já resolve Cloudflare/bloqueio de IP; ver
+  // README.md > "Buscando via Apify") ---
+  APIFY_API_TOKEN: process.env.APIFY_API_TOKEN || '',
+  // IDs no formato "dono/nome-do-ator". Deixe em branco para usar o
+  // scraper direto como alternativa gratuita (só existe para OLX; ZAP
+  // Imóveis funciona exclusivamente via Apify nesta versão).
+  APIFY_OLX_ACTOR_ID: process.env.APIFY_OLX_ACTOR_ID || '',
+  APIFY_ZAP_ACTOR_ID: process.env.APIFY_ZAP_ACTOR_ID || '',
+
+  // --- Scraper direto (fallback gratuito, só para OLX) ---
   OLX_BASE_URL: process.env.OLX_BASE_URL || 'https://www.olx.com.br',
   SCRAPER_USER_AGENT:
     process.env.SCRAPER_USER_AGENT ||

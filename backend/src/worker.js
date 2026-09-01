@@ -60,7 +60,7 @@ async function notificarNovosImoveis(perfil, novos) {
     for (const chatId of chatIds) {
       const publicado = await publicarImovel(chatId, listing);
       if (publicado) {
-        await listingModel.atualizarStatus(listing.olxId, 'notificado');
+        await listingModel.atualizarStatus(listing.plataforma, listing.anuncioId, 'notificado');
       }
     }
   }

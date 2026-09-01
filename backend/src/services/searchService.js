@@ -12,18 +12,35 @@
 const profileModel = require('../models/profileModel');
 const listingModel = require('../models/listingModel');
 const scanLogModel = require('../models/scanLogModel');
-const scraperService = require('./scraperService');
+const { obterPlataformasDoPerfil } = require('./platforms');
 const { avaliarImovel } = require('./scoringEngine');
 
 /**
- * Executa uma varredura completa para um único perfil: coleta, avalia,
- * persiste (upsert com dedupe) e registra log.
+ * Executa uma varredura completa para um único perfil: coleta em todas as
+ * plataformas configuradas (OLX, ZAP Imóveis, ...), avalia, persiste
+ * (upsert com dedupe por plataforma+anuncioId) e registra log.
  * @returns {Promise<{ perfil, novos, atualizados, total, erro }>}
  */
 async function executarVarreduraPerfil(perfil) {
   const inicio = Date.now();
+  const plataformas = obterPlataformasDoPerfil(perfil);
+  const errosPorPlataforma = [];
+
   try {
-    const { listings, paginasVarridas } = await scraperService.coletarParaPerfil(perfil);
+    const resultadosPorPlataforma = await Promise.all(
+      plataformas.map(async (plataforma) => {
+        try {
+          return await plataforma.buscar(perfil);
+        } catch (err) {
+          // Falha controlada: uma plataforma com erro não derruba as
+          // demais nem a varredura do perfil inteiro.
+          errosPorPlataforma.push(`${plataforma.nome}: ${err.message}`);
+          return [];
+        }
+      })
+    );
+
+    const listings = resultadosPorPlataforma.flat();
 
     const avaliados = listings.map((item) => {
       const { score, resumo, detalhes } = avaliarImovel(item, perfil);
@@ -42,11 +59,12 @@ async function executarVarreduraPerfil(perfil) {
       profileId: perfil.id,
       perfilNome: perfil.nome,
       sucesso: true,
-      paginasVarridas,
+      plataformas: plataformas.map((p) => p.nome),
       totalEncontrados: avaliados.length,
       novos: novos.length,
       atualizados: atualizados.length,
       duracaoMs: Date.now() - inicio,
+      ...(errosPorPlataforma.length ? { avisos: errosPorPlataforma.join(' | ') } : {}),
     });
 
     return { perfil, novos, atualizados, total: avaliados.length, erro: null };

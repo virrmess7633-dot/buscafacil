@@ -16,10 +16,10 @@ router.get('/', (req, res) => {
   res.json(listings);
 });
 
-// PATCH /api/listings/:olxId/status  { status: 'favorito' | 'descartado' | 'visto' }
-router.patch('/:olxId/status', async (req, res) => {
+// PATCH /api/listings/:plataforma/:anuncioId/status  { status: 'favorito' | 'descartado' | 'visto' }
+router.patch('/:plataforma/:anuncioId/status', async (req, res) => {
   try {
-    const listing = await listingModel.atualizarStatus(req.params.olxId, req.body.status);
+    const listing = await listingModel.atualizarStatus(req.params.plataforma, req.params.anuncioId, req.body.status);
     res.json(listing);
   } catch (err) {
     res.status(400).json({ erro: err.message });

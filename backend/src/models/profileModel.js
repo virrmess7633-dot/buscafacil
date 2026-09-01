@@ -21,6 +21,7 @@ const store = new JsonStore(PROFILES_FILE, []);
  *   ativo: boolean,
  *   localizacao: {
  *     cidade: string,
+ *     uf: string|null,             // sigla do estado (ex.: "PB") — usado pelo adaptador do ZAP Imóveis
  *     bairros: string[],          // opcional
  *     lat: number|null,           // opcional, para busca por raio
  *     lng: number|null,
@@ -43,6 +44,7 @@ const store = new JsonStore(PROFILES_FILE, []);
  *   andarMax: number|null,
  *   exigeElevador: boolean,
  *   pesos: { preco, localizacao, quartos, area, extras },  // somam 1.0
+ *   plataformas: string[],        // ['olx','zap'] — quais fontes buscar; default: todas
  *   notificacao: {
  *     scoreMinimo: number,        // sobrescreve NOTIFY_MIN_SCORE global
  *     telegramChatIds: string[],  // grupos/comunidades de destino
@@ -75,6 +77,7 @@ function normalizarPerfil(input, existente = {}) {
     ativo: input.ativo ?? existente.ativo ?? true,
     localizacao: {
       cidade: input.localizacao?.cidade ?? existente.localizacao?.cidade ?? '',
+      uf: input.localizacao?.uf ?? existente.localizacao?.uf ?? null,
       bairros: input.localizacao?.bairros ?? existente.localizacao?.bairros ?? [],
       lat: input.localizacao?.lat ?? existente.localizacao?.lat ?? null,
       lng: input.localizacao?.lng ?? existente.localizacao?.lng ?? null,
@@ -97,6 +100,7 @@ function normalizarPerfil(input, existente = {}) {
     andarMax: input.andarMax ?? existente.andarMax ?? null,
     exigeElevador: input.exigeElevador ?? existente.exigeElevador ?? false,
     pesos,
+    plataformas: input.plataformas ?? existente.plataformas ?? ['olx', 'zap'],
     notificacao: {
       scoreMinimo:
         input.notificacao?.scoreMinimo ?? existente.notificacao?.scoreMinimo ?? 70,

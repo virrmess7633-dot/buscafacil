@@ -39,15 +39,18 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      - name: Configurar segredos (Telegram, etc.)
+      - name: Configurar segredos (Telegram, Apify, etc.)
         # Lê dos "repository secrets" do GitHub — configure-os em:
-        # Settings > Secrets and variables > Actions. Se você ainda não
-        # tem o token do bot, pode deixar TELEGRAM_BOT_TOKEN vazio por
-        # enquanto; o worker simplesmente roda com o bot desativado.
+        # Settings > Secrets and variables > Actions. Deixe em branco os
+        # que ainda não tiver; as funcionalidades correspondentes
+        # simplesmente ficam desativadas até serem configuradas.
         run: |
           flyctl secrets set \
             TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
             TELEGRAM_ADMIN_CHAT_IDS="${{ secrets.TELEGRAM_ADMIN_CHAT_IDS }}" \
+            APIFY_API_TOKEN="${{ secrets.APIFY_API_TOKEN }}" \
+            APIFY_OLX_ACTOR_ID="${{ secrets.APIFY_OLX_ACTOR_ID }}" \
+            APIFY_ZAP_ACTOR_ID="${{ secrets.APIFY_ZAP_ACTOR_ID }}" \
             --app ${{ steps.app.outputs.name }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -99,7 +99,7 @@ async function publicarImovel(chatId, listing) {
   if (!bot || pausado) return false;
 
   const legenda = montarLegenda(listing);
-  const botoes = [[{ text: '🔗 Ver na OLX', url: listing.linkOlx }]];
+  const botoes = [[{ text: '🔗 Ver anúncio', url: listing.linkAnuncio }]];
   if (listing.whatsapp) {
     const mensagem = encodeURIComponent(`Olá! Vi seu anúncio "${listing.titulo}" na OLX e tenho interesse.`);
     botoes[0].push({ text: '💬 Chamar no WhatsApp', url: `https://wa.me/${listing.whatsapp}?text=${mensagem}` });
@@ -122,8 +122,10 @@ async function publicarImovel(chatId, listing) {
 }
 
 function montarLegenda(listing) {
+  const nomePlataforma = { olx: 'OLX', zap: 'ZAP Imóveis' }[listing.plataforma] || listing.plataforma;
   const partes = [
     `*${listing.titulo}*`,
+    `📌 ${nomePlataforma}`,
     `💰 R$ ${listing.preco ?? '?'}${listing.condominio ? ` + R$${listing.condominio} cond.` : ''}`,
     `📍 ${listing.endereco || 'Localização não informada'}`,
   ];
